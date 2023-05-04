@@ -23,10 +23,11 @@ def json_reader(path):
             song = data['Artists_songs']
             song = song.split('[')[0]
             song = song.lower()
-            song = song.replace(" ", "")
+            #song = song.replace(" ", "")
+
             if re.search(r'\b\d{4}\b', song):
                 song = song[:-6]
-
+            print(song)
             #keep the id and the song name
             song = [id, song]
             songs.append(song)
@@ -56,32 +57,40 @@ def json_create(string, id):
 def retrieve_lyrics(item):
     artist = item[1].split('-')[0]
     song = item[1].split('-')[1]
+    
+
+    artist_ = genius.search_artist(artist, max_songs=0, sort="title")
+    if artist_ is None:
+        print("Artist not found: " + artist)
+        return
+    print("Artist:" + artist)
+    print("Artist: " + artist_.name)
 
     song_ = genius.search_song(song, artist)
+    
     if song_ is None:
         return
+    #print(song_.title + "----" + song)
     lyrics = song_.lyrics
+
+    
     if lyrics is None:
         return
     
     json_create(lyrics, item[0])
 
-k = 1
+k = 0
 while True:
 
     listaa = json_reader('json_files/')
     listaa.sort(key=lambda x: x[0])
-    if k == 1:
-        for item in listaa:
-            retrieve_lyrics(item)
-    else:
-        for item in listaa[-10:]:
-            retrieve_lyrics(item)
-        
+    
+    for item in listaa:
+        retrieve_lyrics(item)
+    k = k + 1
     print("Iteration: " + str(k))
-    print("Sleeping for 60 seconds...")
-    k += 1
-    time.sleep(60)
+    print("Sleeping for 60 minutes...")
+    time.sleep(3600)
 
 
 

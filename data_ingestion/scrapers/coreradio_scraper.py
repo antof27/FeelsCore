@@ -115,7 +115,7 @@ while True:
         #print(i)
         print(j)
 
-        log_create(i, j, timestamp)
+        #log_create(i, j, timestamp)
         json_create(i, j, timestamp)
     
     l_id = []

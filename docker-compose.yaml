@@ -1,0 +1,20 @@
+version: '3.7'
+services:
+       
+    logstash:
+        image: tap:logstash
+        networks: 
+            - tap
+        environment:
+            XPACK_MONITORING_ENABLED: "false"
+        volumes:
+            - ./data_ingestion/logstash/json_files/:/tmp/json_files
+            - ./data_ingestion/logstash/pipeline/logstash.conf:/usr/share/logstash/pipeline/logstash.conf
+
+networks:
+    tap:
+        name: tap
+        driver: bridge
+        ipam:
+            config:
+                - subnet: 10.0.100.1/24
