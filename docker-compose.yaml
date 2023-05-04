@@ -11,6 +11,20 @@ services:
             - ./data_ingestion/logstash/json_files/:/tmp/json_files
             - ./data_ingestion/logstash/pipeline/logstash.conf:/usr/share/logstash/pipeline/logstash.conf
 
+#launch a python script that depends on logstash
+    
+
+    coreradio_script:
+        networks:
+            - tap
+        
+        
+
+
+
+        command: python3 /coreradio_scraper.py
+
+
 networks:
     tap:
         name: tap
