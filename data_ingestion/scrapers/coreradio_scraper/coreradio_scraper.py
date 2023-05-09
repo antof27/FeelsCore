@@ -5,6 +5,11 @@ from datetime import datetime
 import os
 import time
 import logging
+import socket
+
+TCP_IP = 'logstash'
+TCP_PORT = 5002
+RETRY_DELAY = 5 
 
 def json_create(string, id, timestamp):
     data = {
@@ -13,6 +18,24 @@ def json_create(string, id, timestamp):
         "Artists_songs" : string[2],
         "Timestamp" : timestamp
     }
+    
+    connected = False
+    while not connected:
+        try:
+            #json must be sent to the network
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            sock.connect((TCP_IP, TCP_PORT))
+            sock.sendall(json.dumps(data).encode('utf-8'))
+            sock.close()
+            connected = True
+        except ConnectionRefusedError:
+            print(f"Connection to {TCP_IP}:{TCP_PORT} refused. Retrying in {RETRY_DELAY} seconds...")
+            time.sleep(RETRY_DELAY) 
+
+
+    '''
+    json_string = json.dumps(data)
+    return json_string
 
     #create the folder if not exists
     if not os.path.exists('json_files'):
@@ -25,6 +48,7 @@ def json_create(string, id, timestamp):
     else:
         with open(filename, 'w') as outfile:
             json.dump(data, outfile)
+    
 
 
 def log_create(string, id, timestamp):
@@ -40,7 +64,7 @@ def log_create(string, id, timestamp):
     else:
         with open(filename, 'w') as outfile:
             outfile.write(log_data + '\n')
-
+    '''
 
 
 l_id = []
