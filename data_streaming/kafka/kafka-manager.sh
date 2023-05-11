@@ -19,7 +19,7 @@ case ${KAFKA_ACTION} in
     kafka-server-start.sh ${KAFKA_DIR}/config/${KAFKA_CONFIG}
     ;;
     "create-topic")
-    kafka-topics.sh --create --bootstrap-server 10.0.100.23:9092 --replication-factor 1 --partitions 1 --topic ${KAFKA_TOPIC}
+    kafka-topics.sh --create --bootstrap-server 10.0.100.23:9092 --replication-factor 2 --partitions 2 --topic ${KAFKA_TOPIC}
     ;;
     "producer")
     kafka-console-producer.sh --broker-list 10.0.100.23:9092 --topic ${KAFKA_TOPIC}
