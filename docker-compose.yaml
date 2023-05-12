@@ -47,7 +47,7 @@ services:
     environment:
         - KAFKA_ACTION=create-topic
         - KAFKA_PARTITION=3
-        - KAFKA_TOPIC=mytopic
+        - KAFKA_TOPIC=musicFlux
     networks: 
         tap:
     depends_on:
@@ -62,7 +62,7 @@ services:
     environment:
       - XPACK_MONITORING_ENABLED=false
       - KAFKA_OUTPUT_BOOTSTRAP_SERVERS=kafkaserver:9092
-      - KAFKA_OUTPUT_TOPIC=mytopic
+      - KAFKA_OUTPUT_TOPIC=musicFlux
     volumes:
       - ./data_ingestion/logstash/pipeline/logstash.conf:/usr/share/logstash/pipeline/logstash.conf
 
@@ -83,7 +83,7 @@ services:
     container_name: kafkaConsumer
     environment:
         - KAFKA_ACTION=consumer
-        - KAFKA_TOPIC=mytopic
+        - KAFKA_TOPIC=musicFlux
         - KAFKA_GROUP_ID=0
     networks: 
         tap:
