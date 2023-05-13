@@ -8,6 +8,5 @@ RUN pip install -r requirements.txt
 
 COPY . .
 
-CMD ["python3", "./consumer-script.py"]
-
+CMD ["python3", "./ckafka-streams.py"]
 

@@ -2,7 +2,7 @@ from kafka import KafkaConsumer, KafkaProducer
 from kafka import KafkaStreams
 from kafka import TopicPartition
 from kafka import StreamBuilder, StringSerde, AutoOffsetReset
-from genius import get_lyrics
+import genius
 
 # Create the StreamsBuilder
 builder = StreamBuilder.default_builder()
@@ -15,7 +15,7 @@ output_topic = "lyricsFlux"
 source_stream = builder.stream(input_topic, value_serde=StringSerde())
 
 # Apply the capitalization transformation
-capitalized_stream = source_stream.map_values(get_lyrics)
+capitalized_stream = source_stream.map_values(genius.get_lyrics)
 
 # Write the capitalized data to the output topic
 capitalized_stream.to(output_topic, value_serde=StringSerde())
