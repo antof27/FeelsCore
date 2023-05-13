@@ -83,7 +83,7 @@ services:
     container_name: kafkaConsumer
     environment:
         - KAFKA_ACTION=consumer
-        - KAFKA_TOPIC=musicFlux
+        - KAFKA_TOPIC=lyricsFlux
         - KAFKA_GROUP_ID=0
     networks: 
         tap:
