@@ -2,12 +2,14 @@ import os
 import json
 import re
 import lyricsgenius
-from faust import App, Topic, Stream
+
+from faust import App
+
 from genius_credentials import *
 
 genius = lyricsgenius.Genius(access_token)
 
-app = App('lyricsFaust', broker='kafka://kafkaserver:9092')
+app = App('faust-app', broker='kafka://kafkaserver:9092')
 
 topic_in = App.topic('musicFlux')
 topic_out = App.topic('lyricsFlux')

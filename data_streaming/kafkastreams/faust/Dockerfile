@@ -8,4 +8,4 @@ RUN pip install -r requirements.txt
 
 COPY . .
 
-CMD ["faust", "-A", "lyricsFaust", "worker", "-l", "info"]
+CMD ["lyrics-faust", "-A", "faust-app", "worker", "-l", "info"]
