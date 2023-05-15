@@ -7,10 +7,10 @@ from genius_credentials import *
 
 genius = lyricsgenius.Genius(access_token)
 
-app = App('faust', broker='kafka://kafkaserver:9092')
+app = App('lyricsFaust', broker='kafka://kafkaserver:9092')
 
-topic_in = Topic('musicFlux')
-topic_out = Topic('lyricsFlux')
+topic_in = App.topic('musicFlux')
+topic_out = App.topic('lyricsFlux')
 
 def clean_lyrics(lyrics):
     # Remove tags
