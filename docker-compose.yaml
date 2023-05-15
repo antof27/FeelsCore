@@ -46,8 +46,21 @@ services:
     container_name: kafkaTopic
     environment:
         - KAFKA_ACTION=create-topic
-        - KAFKA_PARTITION=3
+        - KAFKA_PARTITION=2
         - KAFKA_TOPIC=musicFlux
+    networks: 
+        tap:
+    depends_on:
+        - zookeeper
+        - kafkaserver
+  
+  kafkaTopic2:
+    image: tap:kafka
+    container_name: kafkaTopic2
+    environment:
+        - KAFKA_ACTION=create-topic
+        - KAFKA_PARTITION=2
+        - KAFKA_TOPIC=lyricsFlux
     networks: 
         tap:
     depends_on:
@@ -88,21 +101,22 @@ services:
     networks: 
         tap:
     depends_on:
-        kafkaTopic:
+        kafkaTopic2:
             condition: service_completed_successfully
 
+
   kafkaStreams:
-    image: tap:kafka
+    image: tap:faust
     container_name: kafkaStreams
     environment:
-        - KAFKA_ACTION=streams
-        - KAFKA_INPUT_TOPIC=musicFlux
-        - KAFKA_OUTPUT_TOPIC=lyricsFlux
+      - KAFKA_ACTION=streams
+      - KAFKA_INPUT_TOPIC=musicFlux
+      - KAFKA_OUTPUT_TOPIC=lyricsFlux
     networks: 
-        tap: 
+      tap: 
     depends_on:
-        kafkaTopic:
-            condition: service_completed_successfully
+      - kafkaTopic
+      - kafkaTopic2
   
 
   coreradio_script:
