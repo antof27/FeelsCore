@@ -1,18 +1,17 @@
 import os
 import json
 import re
+import faust
 import lyricsgenius
-
-from faust import App
 
 from genius_credentials import *
 
 genius = lyricsgenius.Genius(access_token)
 
-app = App('faust-app', broker='kafka://kafkaserver:9092')
+app = faust.App('lyrics-faust', broker='kafka://kafkaserver:9092')
 
-topic_in = App.topic('musicFlux')
-topic_out = App.topic('lyricsFlux')
+topic_in = app.topic('musicFlux')
+topic_out = app.topic('lyricsFlux')
 
 def clean_lyrics(lyrics):
     # Remove tags
