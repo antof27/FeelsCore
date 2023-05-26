@@ -3,6 +3,7 @@ from pyspark.conf import SparkConf
 from kafka import KafkaProducer
 from pyspark.sql.functions import udf
 import lyricsgenius
+import random as rd
 import json
 import re
 
@@ -14,7 +15,7 @@ access_token = "5eEqYSpR_WlDSv1johECV8bhePcZ-WxWxGacMWxXMzYgFhHNQWBxuDct1Fan9bYa
 
 #-------------------------- GENIUS SCRIPTS --------------------------#
 genius = lyricsgenius.Genius(access_token, timeout=15, sleep_time=0.2, retries=5, remove_section_headers=True, skip_non_songs=True)
-
+retry_list = []
 
 def clean_lyrics(lyrics):
     # Remove tags
@@ -34,26 +35,7 @@ def clean_lyrics(lyrics):
 
     return lyrics
 
-'''
-def json_reader(json_file):
-    
-    with open(json_file) as f:   
 
-        id = json_file.split('_')[1]
-        id = id.split('.')[0]
-        
-        data = json.load(f)
-        song = data['Artists_songs']
-        song = song.split('[')[0]
-        song = song.lower()
-
-        if re.search(r'\b\d{4}\b', song):
-            song = song[:-6]
-
-        song = [id, song]
-        
-    return song
-'''
 
 def json_create(item, string):
     parsed_data = json.loads(item)
@@ -63,6 +45,7 @@ def json_create(item, string):
         parsed_data['lyrics'] = string
     else:
         parsed_data['lyrics'] = None
+        
         return
 
     # Convert the JSON object back to a string
@@ -85,6 +68,7 @@ def json_create(item, string):
 
 
 def retrieve_lyrics(item):
+    sem = True
     print("Item : ",item)
     parsed_data = json.loads(item)
 
@@ -93,21 +77,16 @@ def retrieve_lyrics(item):
     try:
         artist = artists_songs.split('-')[0]
 
-        print("Artist : ",artist)
         song = artists_songs.split('-')[1]
-        print("Song : ",song)
+        
         song = song.split('[')[0]
         song = song.lower()
 
         if re.search(r'\b\d{4}\b', song):
             song = song[:-6]
         
-        print("Song reworked: ",song)
         
         artist_found = genius.search_artist(artist, sort="title", max_songs=3, allow_name_change=False)
-        
-        if artist_found is None:
-            return None
         
         song_found = artist_found.song(song)
         
@@ -116,30 +95,62 @@ def retrieve_lyrics(item):
         print("ARTIST : ",artist_found)
 
         if song_found is None:
+            print("la song è none!")
+            sem = False
+        else:
+            lyrics = song_found.lyrics
+            if lyrics is None:
+                print("la lyrics è none!")
+                sem = False
+        
+        if sem == False:
+            if item not in retry_list:    
+                print("ADDED")
+                retry_list.append(item)
+            
             return None
 
-        lyrics = song_found.lyrics
-        
-        if lyrics is None:
-            return None
-        
         lyrics = clean_lyrics(lyrics)
+
     except:
         return None
+
 
     return lyrics
 
 
+def retry_songs(retry_list):
+    for item in retry_list:
+        lyrics = retrieve_lyrics(item)
+        if lyrics is None:
+            continue
+        json_create(item, lyrics)
+        retry_list.remove(item)
+
+
+    
 
 
 
 def get_lyrics(item):
     
     lyrics = retrieve_lyrics(item)
-    #song = json_reader(item)
-    #lyrics = retrieve_lyrics(item)
-    print("Lyrics : ",lyrics)
+    #print("Lyrics : ",lyrics)
     json_create(item, lyrics)
+    #call retry_songs function with a random probability
+
+    if rd.random() < 0.1:
+        retry_songs(retry_list)
+        
+        
+
+
+
+    
+
+
+    
+
 
     
 
