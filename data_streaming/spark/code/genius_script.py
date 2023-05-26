@@ -1,17 +1,9 @@
-import os
+import lyricsgenius
 import json
 import re
-import faust
-import lyricsgenius
-
 from genius_credentials import *
-
 genius = lyricsgenius.Genius(access_token)
 
-app = faust.App('lyrics-faust', broker='kafka://kafkaserver:9092')
-
-topic_in = app.topic('musicFlux')
-topic_out = app.topic('lyricsFlux')
 
 def clean_lyrics(lyrics):
     # Remove tags
@@ -57,29 +49,33 @@ def json_create(json_file, string):
         with open(json_file, 'r') as f:
             data = json.load(f)
             data['lyrics'] = string
-
+        '''
         with open(json_file, 'w') as f:
             json.dump(data, f, indent=4)
-            
+        '''    
         return json_file
     else:
         # add a field in the json file, called lyrics for the song
         with open(json_file, 'r') as f:
             data = json.load(f)
             data['lyrics'] = None
-
+        '''
         with open(json_file, 'w') as f:
             json.dump(data, f, indent=4)
-            
+        '''
         return json_file
+        
+
 
 
 def retrieve_lyrics(item):
     artist = item[1].split('-')[0]
     song = item[1].split('-')[1]
     
+
     artist_ = genius.search_artist(artist, max_songs=0, sort="title")
     
+
     artist_low = artist_.name.lower()
     artist_low = artist_low.replace(" ", "")
     artist = artist.replace(" ", "")
@@ -104,10 +100,15 @@ def retrieve_lyrics(item):
     return lyrics
 
 
-@app.agent(topic_in)
-async def process_lyrics(json_files):
-    async for json_file in json_files:
-        song = json_reader(json_file)
-        lyrics = retrieve_lyrics(song)
-        json_create(json_file, lyrics)
-        await topic_out.send(json_file)
+
+def get_lyrics(item):
+    
+    lyrics = retrieve_lyrics(item)
+  
+    song = json_reader(item)
+    lyrics = retrieve_lyrics(song)
+    json_create(item, lyrics)
+
+    return item
+
+
