@@ -3,7 +3,9 @@ from pyspark.conf import SparkConf
 from kafka import KafkaProducer
 from pyspark.sql.functions import udf
 import lyricsgenius
+import numpy as np
 import random as rd
+import time
 import json
 import re
 
@@ -16,6 +18,7 @@ access_token = "5eEqYSpR_WlDSv1johECV8bhePcZ-WxWxGacMWxXMzYgFhHNQWBxuDct1Fan9bYa
 #-------------------------- GENIUS SCRIPTS --------------------------#
 genius = lyricsgenius.Genius(access_token, timeout=15, sleep_time=0.2, retries=5, remove_section_headers=True, skip_non_songs=True)
 retry_list = []
+last_retry_time = time.time()
 
 def clean_lyrics(lyrics):
     # Remove tags
@@ -72,7 +75,6 @@ def retrieve_lyrics(item):
     print("Item : ",item)
     parsed_data = json.loads(item)
 
-    # Extract the value of "Artists_songs"
     artists_songs = parsed_data["Artists_songs"]
     try:
         artist = artists_songs.split('-')[0]
@@ -90,22 +92,16 @@ def retrieve_lyrics(item):
         
         song_found = artist_found.song(song)
         
-
-        print("SONG : ",song_found)
-        print("ARTIST : ",artist_found)
-
         if song_found is None:
-            print("la song è none!")
             sem = False
         else:
             lyrics = song_found.lyrics
             if lyrics is None:
-                print("la lyrics è none!")
                 sem = False
         
         if sem == False:
             if item not in retry_list:    
-                print("ADDED")
+                
                 retry_list.append(item)
             
             return None
@@ -120,39 +116,47 @@ def retrieve_lyrics(item):
 
 
 def retry_songs(retry_list):
+    if len(retry_list) == 0:
+           return
+
     for item in retry_list:
         lyrics = retrieve_lyrics(item)
+        
         if lyrics is None:
             continue
-        json_create(item, lyrics)
-        retry_list.remove(item)
+        else:
+            json_create(item, lyrics)
+            retry_list.remove(item)
 
+    len_list = len(retry_list)
+    elements_to_remove = int((10*len_list)/100)
+    prob = np.linspace(0, 1, elements_to_remove)
+    prob = 1 - prob
+    
+    for i in range(elements_to_remove):
+        if rd.random() < prob[i]:
+    
+            retry_list.remove(retry_list[i])
+            len_list = len_list - 1
+        else:
+            continue
 
     
-
-
+            
 
 def get_lyrics(item):
-    
+    global last_retry_time 
     lyrics = retrieve_lyrics(item)
-    #print("Lyrics : ",lyrics)
     json_create(item, lyrics)
-    #call retry_songs function with a random probability
 
-    if rd.random() < 0.1:
+    current_time = time.time()
+    if current_time - last_retry_time >= (60*60*24):  
+        print("Retrying 24 hours later...")
         retry_songs(retry_list)
+        last_retry_time = current_time
+
         
         
-
-
-
-    
-
-
-    
-
-
-    
 
 #-------------------------- SPARK SCRIPTS --------------------------#
 
