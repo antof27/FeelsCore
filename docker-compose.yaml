@@ -66,6 +66,7 @@ services:
     depends_on:
         - zookeeper
         - kafkaserver
+        - spark
 
 
   logstash:
@@ -90,34 +91,49 @@ services:
     ports:
       - "5002:5002"
     
-  
-  kafkaConsumer:
-    image: tap:kafka
-    container_name: kafkaConsumer
-    environment:
-        - KAFKA_ACTION=consumer
-        - KAFKA_TOPIC=lyricsFlux
-        - KAFKA_GROUP_ID=0
-    networks: 
-        tap:
-    depends_on:
-        kafkaTopic2:
-            condition: service_completed_successfully
 
-
-  kafkaStreams:
-    image: tap:faust
-    container_name: kafkaStreams
+  spark:
+    image: tap:spark
+    container_name: spark
     environment:
-      - KAFKA_ACTION=streams
-      - KAFKA_INPUT_TOPIC=musicFlux
-      - KAFKA_OUTPUT_TOPIC=lyricsFlux
-    networks: 
-      tap: 
+      - SPARK_ACTION=bash
+      - SPARK_MASTER_URL=spark://spark-master:7077
+      - SPARK_DEPLOY_MODE=client
+      - SPARK_APPLICATION_PYTHON_FILES=/opt/spark-app/spark_code.py
+    volumes:
+      - ./data_streaming/spark/code:/opt/spark-app
+    deploy:
+      resources:
+        limits:
+          cpus: '4.0'
+          memory: 4g
+    networks:
+      - tap
     depends_on:
-      - kafkaTopic
-      - kafkaTopic2
-  
+      - kafkaserver
+    command: spark-submit --packages org.apache.spark:spark-sql-kafka-0-10_2.12:3.1.2,org.elasticsearch:elasticsearch-spark-30_2.12:8.2.0 --master local[*] /opt/spark-app/spark_code.py
+      
+  spark_processing:
+    image: tap:spark
+    container_name: spark_processing
+    environment:
+      - SPARK_ACTION=bash
+      - SPARK_MASTER_URL=spark://spark-master:7077
+      - SPARK_DEPLOY_MODE=client
+      - SPARK_APPLICATION_PYTHON_FILES=/opt/spark-app/spark_analysis.py
+    volumes:
+      - ./data_streaming/spark/code:/opt/spark-app
+    deploy:
+      resources:
+        limits:
+          cpus: '4.0'
+          memory: 4g
+    networks:
+      - tap
+    depends_on:
+      - kafkaserver
+    command: spark-submit --packages org.apache.spark:spark-sql-kafka-0-10_2.12:3.1.2,org.elasticsearch:elasticsearch-spark-30_2.12:8.2.0 --master local[*] /opt/spark-app/spark_analysis.py
+
 
   coreradio_script:
     build: 

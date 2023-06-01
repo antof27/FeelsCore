@@ -25,6 +25,12 @@ ADD code /opt/tap/code
 
 WORKDIR ${SPARK_DIR}
 
-ENTRYPOINT ["spark-submit", "--packages", "org.apache.spark:spark-sql-kafka-0-10_2.12:3.1.2,org.elasticsearch:elasticsearch-spark-30_2.12:8.2.0", "--master", "local[*]", "/opt/tap/code/spark_code.py"]
+#ENTRYPOINT ["spark-submit", "--packages", "org.apache.spark:spark-sql-kafka-0-10_2.12:3.1.2,org.elasticsearch:elasticsearch-spark-30_2.12:8.2.0", "--master", "local[*]", "/opt/tap/code/spark_code.py"]
+# ENTRYPOINT ["spark-submit", \
+#     "--packages", "org.apache.spark:spark-sql-kafka-0-10_2.12:3.1.2,org.elasticsearch:elasticsearch-spark-30_2.12:8.2.0", \
+#     "--master", "local[*]", \
+#     "/opt/tap/code/spark_code.py", \
+#     "/opt/tap/code/spark_analysis.py"]
+
 
 

@@ -42,25 +42,29 @@ def clean_lyrics(lyrics):
 
 def json_create(item, string):
     parsed_data = json.loads(item)
-
+    sem = False
     # Append the lyrics to the JSON object if it is not empty
+    print("String arrived : ",string)
     if string is not None:
-        parsed_data['lyrics'] = string
+        parsed_data['Lyrics'] = string
+        sem = True
     else:
-        parsed_data['lyrics'] = None
+
+        parsed_data['Lyrics'] = None
         
-        return
+        
 
     # Convert the JSON object back to a string
     updated_item = json.dumps(parsed_data)
 
     # Send the updated item to Kafka
     try:
-        producer = KafkaProducer(bootstrap_servers='kafkaserver:9092')
-        producer.send('lyricsFlux', updated_item.encode('utf-8'))
-        producer.flush()  # Wait for the message to be sent
-        producer.close()  # Close the producer
-        return True
+        if sem == True:
+            producer = KafkaProducer(bootstrap_servers='kafkaserver:9092')
+            producer.send('lyricsFlux', updated_item.encode('utf-8'))
+            producer.flush()  # Wait for the message to be sent
+            producer.close()  # Close the producer
+            return True
     except Exception as e:
         print(f"Error sending item to Kafka: {str(e)}")
         return False
@@ -147,7 +151,8 @@ def retry_songs(retry_list):
 def get_lyrics(item):
     global last_retry_time 
     lyrics = retrieve_lyrics(item)
-    json_create(item, lyrics)
+    if lyrics is not None:
+        json_create(item, lyrics)
 
     current_time = time.time()
     if current_time - last_retry_time >= (60*60*24):  
