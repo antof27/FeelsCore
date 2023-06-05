@@ -102,7 +102,6 @@ services:
       - SPARK_APPLICATION_PYTHON_FILES=/opt/spark-app/spark_code.py
     volumes:
       - ./data_streaming/spark/code:/opt/spark-app
-      - lyrics_volume:/app/lyrics
     deploy:
       resources:
         limits:
@@ -134,31 +133,8 @@ services:
     depends_on:
       - kafkaserver
       - spark
-      - spark_training_model
     command: spark-submit --packages org.apache.spark:spark-sql-kafka-0-10_2.12:3.1.2,org.elasticsearch:elasticsearch-spark-30_2.12:8.2.0 --master local[*] /opt/spark-app/spark_analysis.py
 
-  spark_training_model:
-    image: tap:spark
-    container_name: spark_training_model
-    environment:
-      - SPARK_ACTION=bash
-      - SPARK_MASTER_URL=spark://spark-master:7077
-      - SPARK_DEPLOY_MODE=client
-      - SPARK_APPLICATION_PYTHON_FILES=/opt/spark-app/spark_training.py
-    volumes:
-      - ./data_streaming/spark/code:/opt/spark-app
-      - lyrics_volume:/app/lyrics
-    deploy:
-      resources:
-        limits:
-          cpus: '4.0'
-          memory: 4g
-    networks:
-      - tap
-    depends_on:
-      - kafkaserver
-      - spark
-    command: spark-submit --packages org.apache.spark:spark-sql-kafka-0-10_2.12:3.1.2,org.elasticsearch:elasticsearch-spark-30_2.12:8.2.0 --master local[*] /opt/spark-app/spark_training.py
 
 
   coreradio_script:
@@ -180,6 +156,3 @@ networks:
     ipam:
       config:
         - subnet: 10.0.100.1/24
-
-volumes:
-  lyrics_volume:
