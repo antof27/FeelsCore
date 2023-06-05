@@ -17,7 +17,7 @@ ADD code/requirements.txt /code/requirements.txt
 
 RUN pip3 install -r /code/requirements.txt
 
-RUN pip3 install pyspark numpy elasticsearch kafka-python 
+RUN pip3 install pyspark==3.4.0 numpy==1.24.3 elasticsearch==8.8.0 kafka-python==2.0.2 
 
 RUN ln -s /opt/spark-${SPARK_VERSION}-bin-${HADOOP_VERSION} ${SPARK_DIR}
 
