@@ -1,26 +1,25 @@
 from pyspark.sql import SparkSession
-from pyspark.sql.functions import from_json
+from pyspark.sql.functions import from_json, col
 from pyspark.sql.types import StructType, StringType
+import sparknlp
+from sparknlp.base import DocumentAssembler, Finisher
+from sparknlp.pretrained import PretrainedPipeline 
+from pyspark.ml import Pipeline
+from sparknlp.annotator import SentenceDetector, Tokenizer, WordEmbeddingsModel, ClassifierDLApproach
+from sparknlp.annotator import UniversalSentenceEncoder, ClassifierDLModel
 
-def get_spark_session():
-    spark = SparkSession.builder \
-        .appName('lyricsReceiver') \
-        .getOrCreate()
 
-    return spark
+spark = SparkSession.builder \
+    .appName("Sparknlp_app") \
+    .master("local[*]") \
+    .config("spark.driver.memory","6G")\
+    .config("spark.driver.maxResultSize", "0") \
+    .config("spark.kryoserializer.buffer.max", "1000M") \
+    .config("spark.jars.packages", "com.johnsnowlabs.nlp:spark-nlp_2.12:4.4.3") \
+    .getOrCreate()
 
-spark = get_spark_session()
 topic = "lyricsFlux"
 kafkaServer = "kafkaserver:9092"
-
-# Define the schema for the JSON data
-schema = StructType() \
-    .add("Genre", StringType()) \
-    .add("Country", StringType()) \
-    .add("Artists_songs", StringType()) \
-    .add("Lyrics", StringType())
-    #.add("Timestamp", StringType()) \
-    
 
 # Read messages from Kafka
 df = spark \
@@ -31,27 +30,29 @@ df = spark \
     .option('startingOffsets', 'latest') \
     .load()
 
-# Convert value column from Kafka messages to string
-df = df.withColumn('value', df['value'].cast('string'))
+# Define the schema for the Kafka message
+messageSchema = StructType().add("Lyrics", StringType())
 
-# Parse the JSON structure
-df = df.selectExpr(
-    "CAST(value AS STRING) as json",
-    "timestamp"
-)
+# Parse the Kafka message as JSON and select the "Lyrics" column
+parsedDf = df.select(from_json(col("value").cast("string"), messageSchema).alias("parsed_value")) \
+             .select("parsed_value.Lyrics")
 
-df = df.select(from_json(df.json, schema).alias("data")).select("data.*")
+# Perform emotion analysis on the "Lyrics" column
+document_assembler = DocumentAssembler() \
+    .setInputCol("Lyrics") \
+    .setOutputCol("document")
 
-# Print DataFrame schema
-print("DataFrame Schema:")
-df.printSchema()
+use = UniversalSentenceEncoder.pretrained('tfhub_use', lang="en") \
+    .setInputCols(["document"])\
+    .setOutputCol("sentence_embeddings")
 
-# Write the transformed data to the console
-query = df \
-    .writeStream \
-    .format('console') \
-    .start()
+classifier = ClassifierDLModel.pretrained('classifierdl_use_emotion', 'en') \
+    .setInputCols(["sentence_embeddings"]) \
+    .setOutputCol("sentiment")
 
-print("Building DataFrame...")
+nlpPipeline = Pipeline(stages=[document_assembler, use, classifier])
 
-query.awaitTermination()
+
+result = nlpPipeline.fit(parsedDf).transform(parsedDf)
+
+result.select("sentiment.result").show(truncate=False)

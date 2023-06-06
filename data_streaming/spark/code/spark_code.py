@@ -61,12 +61,13 @@ def json_create(item, string):
     # Send the updated item to Kafka
     try:
         if sem == True:
+            '''
             output_directory = '/app/lyrics'  # Specify the directory in the Docker volume
             filename = f"lyrics_{time.strftime('%Y%m%d%H%M%S')}.json"  # Generate a unique filename based on the current time
             filepath = os.path.join(output_directory, filename)
             with open(filepath, 'w') as f:
                 f.write(updated_item)
-
+            '''
             producer = KafkaProducer(bootstrap_servers='kafkaserver:9092')
             producer.send('lyricsFlux', updated_item.encode('utf-8'))
             producer.flush()  # Wait for the message to be sent
