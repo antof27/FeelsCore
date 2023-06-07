@@ -119,6 +119,8 @@ def retrieve_lyrics(item):
             return None
 
         lyrics = clean_lyrics(lyrics)
+        if lyrics.endswith('Embed'):
+            lyrics = lyrics[:-5]
 
     except:
         return None
