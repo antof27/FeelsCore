@@ -74,7 +74,7 @@ spark.stop()
 
 
 '''
-#working batch kmenas
+#working batch kmeans
 
 from pyspark import SparkConf
 from pyspark.sql import SparkSession
@@ -103,7 +103,7 @@ def get_spark_session():
         .appName('sentimentDetection') \
         .config(conf=spark_conf) \
         .getOrCreate()
-    
+
     return spark_session
 
 spark = get_spark_session()
@@ -160,14 +160,21 @@ df_sentiment = assembler.transform(df_sentiment)
 # Create an empty DataFrame to store appended messages
 appended_df = spark.createDataFrame([], df_sentiment.schema)
 
+# Message counter
+message_counter = 0
+
 def process_batch(batch_df, batch_id):
     global appended_df
+    global message_counter
 
     # Append the batch DataFrame to the existing DataFrame
     appended_df = appended_df.union(batch_df)
 
+    # Increment message counter
+    message_counter += batch_df.count()
+
     # Check if the DataFrame size is more than 5 messages
-    if appended_df.count() > 5:
+    if message_counter >= 5:
         # Train a K-means model
         kmeans = KMeans().setK(4).setSeed(1)
         model = kmeans.fit(appended_df)
@@ -184,6 +191,9 @@ def process_batch(batch_df, batch_id):
         # Clear the appended DataFrame
         appended_df = spark.createDataFrame([], df_sentiment.schema)
 
+        # Reset the message counter
+        message_counter = 0
+
 
 # Define the output sink to process the DataFrame in batches
 query = df_sentiment.writeStream \
@@ -193,5 +203,6 @@ query = df_sentiment.writeStream \
 
 # Wait for the query to terminate
 query.awaitTermination()
+
 
 '''

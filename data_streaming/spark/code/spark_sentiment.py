@@ -1,10 +1,11 @@
 from pyspark import SparkConf
 from pyspark.sql import SparkSession
-from pyspark.sql.functions import udf
-from pyspark.sql.types import StringType, FloatType, StructType
+from pyspark.sql.functions import udf, from_json, col
+from pyspark.sql.types import StringType, FloatType, StructType, StructField, IntegerType
 from pyspark.ml.feature import VectorAssembler
 from pyspark.ml.clustering import KMeans, KMeansModel
 import spacy
+from elasticsearch import Elasticsearch
 import json
 from textblob import TextBlob
 
@@ -30,29 +31,16 @@ def get_spark_session():
 
 spark = get_spark_session()
 
-def get_polarity(item):
-    try:
-        parsed_data = json.loads(item)
-        text = parsed_data.get('Lyrics')
-        if text:
-            blob = TextBlob(text)
-            polarity = blob.sentiment.polarity
-            parsed_data['polarity'] = polarity
-            return polarity
-    except Exception as e:
-        return None
+def get_polarity(lyrics):
+    blob = TextBlob(lyrics)
+    polarity = blob.sentiment.polarity
+    return polarity
 
-def get_subjectivity(item):
-    try:
-        parsed_data = json.loads(item)
-        text = parsed_data.get('Lyrics')
-        if text:
-            blob = TextBlob(text)
-            subjectivity = blob.sentiment.subjectivity
-            parsed_data['subjectivity'] = subjectivity
-            return subjectivity
-    except Exception as e:
-        return None
+def get_subjectivity(lyrics):
+    blob = TextBlob(lyrics)
+    subjectivity = blob.sentiment.subjectivity
+    return subjectivity
+    
 
 # Define Kafka topic and server
 topic = "lyricsFlux"
@@ -67,13 +55,40 @@ df = spark \
     .option('startingOffsets', 'latest') \
     .load()
 
+schema = StructType([\
+    StructField("Country", StringType(), True),\
+    StructField("Genere", StringType(), True),\
+    StructField("Artists_songs", StringType(), True),\
+    StructField("Lyrics", StringType(), True),\
+])
+    
+
+es_mapping = {
+    "mappings": {
+        "properties": {
+            "Country": {"type": "keyword"},
+            "Genere": {"type": "keyword"},
+            "Artists_songs": {"type": "keyword"},
+            "Lyrics": {"type": "text"},
+            "Polarity": {"type": "float"},
+            "Subjectivity": {"type": "float"},
+            "Prediction": {"type": "keyword"},
+        }
+    }
+}
+
+value_df = df.select(from_json(col("value").cast("string"), schema).alias("value"))
+
+exploded_df = value_df.selectExpr("value.Country", "value.Genere", "value.Artists_songs", "value.Lyrics")
+
+
 # Apply UDFs to the DataFrame
 get_polarity_udf = udf(get_polarity, FloatType())
 get_subjectivity_udf = udf(get_subjectivity, FloatType())
 
-df_sentiment = df.selectExpr("CAST(value AS STRING) AS message") \
-    .withColumn("polarity", get_polarity_udf("message")) \
-    .withColumn("subjectivity", get_subjectivity_udf("message"))
+df_sentiment = exploded_df \
+    .withColumn("polarity", get_polarity_udf("Lyrics")) \
+    .withColumn("subjectivity", get_subjectivity_udf("Lyrics"))
 
 # Assemble the feature into a single vector of columns
 assembler = VectorAssembler(inputCols=["polarity", "subjectivity"], outputCol="features")
@@ -84,21 +99,34 @@ appended_df = spark.createDataFrame([], df_sentiment.schema)
 
 # Message counter
 message_counter = 0
+total_processed = 0
+
+
+
+# Define the Elasticsearch index and mapping
+# elastic = Elasticsearch(hosts=["elasticsearch:9200"])
+# elastic_index = "lyrics_songs"
+
+
 
 def process_batch(batch_df, batch_id):
     global appended_df
     global message_counter
+    global threshold
+    global total_processed
 
     # Append the batch DataFrame to the existing DataFrame
     appended_df = appended_df.union(batch_df)
 
     # Increment message counter
     message_counter += batch_df.count()
+    total_processed += batch_df.count()
+    threshold = 15
 
     # Check if the DataFrame size is more than 5 messages
     if message_counter >= 5:
         # Train a K-means model
-        kmeans = KMeans().setK(4).setSeed(1)
+        kmeans = KMeans().setK(4).setSeed(42)
         model = kmeans.fit(appended_df)
 
         # Make predictions
@@ -106,15 +134,27 @@ def process_batch(batch_df, batch_id):
 
         # Select all columns except features column
         predictions = predictions.select([column for column in predictions.columns if column != 'features'])
+        
+        print("Messages trained: ", total_processed)
+        predictions.show()
+        #if total_processed >= threshold:
+            # Write the predictions to Elasticsearch
+            #predictions.write.format("es").save(elastic_index)
+
+
 
         # Display the results
-        predictions.show()
+            
 
         # Clear the appended DataFrame
         appended_df = spark.createDataFrame([], df_sentiment.schema)
 
         # Reset the message counter
         message_counter = 0
+
+        
+            
+
 
 
 # Define the output sink to process the DataFrame in batches
