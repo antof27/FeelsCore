@@ -96,7 +96,7 @@ def process_batch(batch_df, batch_id):
     message_counter += batch_df.count()
 
     # Check if the DataFrame size is more than 5 messages
-    if message_counter >= 6:
+    if message_counter >= 5:
         # Train a K-means model
         kmeans = KMeans().setK(4).setSeed(1)
         model = kmeans.fit(appended_df)
