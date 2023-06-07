@@ -2,6 +2,8 @@ from pyspark import SparkConf
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import udf
 from pyspark.sql.types import StringType, FloatType, StructType
+from pyspark.ml.feature import VectorAssembler
+from pyspark.ml.clustering import KMeans, KMeansModel
 import spacy
 import json
 from textblob import TextBlob
@@ -74,8 +76,23 @@ df = df.selectExpr("CAST(value AS STRING) AS message") \
     .withColumn("polarity", get_polarity_udf("message")) \
     .withColumn("subjectivity", get_subjectivity_udf("message"))
 
+#Assemble the feature into a single vector of columns
+assembler = VectorAssembler(inputCols=["polarity", "subjectivity"], outputCol="features")
+df = assembler.transform(df)
+
+# Train a k-means model
+kmeans = KMeans().setK(4).setSeed(1)
+model = kmeans.fit(df)
+
+# Make predictions
+predictions = model.transform(df)
+
+# select all columns except features column
+predictions = predictions.select([column for column in predictions.columns if column != 'features'])
+
+
 # Define the output sink to display the results
-query = df \
+query = predictions \
     .writeStream \
     .outputMode("append") \
     .format("console") \
@@ -83,3 +100,5 @@ query = df \
 
 # Wait for the query to terminate
 query.awaitTermination()
+
+
