@@ -70,9 +70,9 @@ es_mapping = {
             "Genere": {"type": "keyword"},
             "Artists_songs": {"type": "keyword"},
             "Lyrics": {"type": "text"},
-            "Polarity": {"type": "float"},
-            "Subjectivity": {"type": "float"},
-            "Prediction": {"type": "keyword"},
+            "polarity": {"type": "float"},
+            "subjectivity": {"type": "float"},
+            "prediction": {"type": "keyword"},
         }
     }
 }
@@ -104,8 +104,9 @@ total_processed = 0
 
 
 # Define the Elasticsearch index and mapping
-# elastic = Elasticsearch(hosts=["elasticsearch:9200"])
-# elastic_index = "lyrics_songs"
+elastic_host = "http://elasticsearch:9200"
+elastic_index = "lyrics_songs"
+es = Elasticsearch(hosts=elastic_host)
 
 
 
@@ -137,9 +138,21 @@ def process_batch(batch_df, batch_id):
         
         print("Messages trained: ", total_processed)
         predictions.show()
-        #if total_processed >= threshold:
+        if total_processed >= threshold:
+            
             # Write the predictions to Elasticsearch
-            #predictions.write.format("es").save(elastic_index)
+            predictions.write.format("org.elasticsearch.spark.sql") \
+                .option("es.nodes", "elasticsearch") \
+                .option("es.port", "9200") \
+                .option("es.resource", elastic_index) \
+                .option("es.mapping.id", "") \
+                .mode("append") \
+                .save()
+    
+
+            
+            print("Messages written to Elasticsearch: ", total_processed)
+
 
 
 

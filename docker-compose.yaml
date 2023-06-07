@@ -168,6 +168,10 @@ services:
         hard: -1
     networks: 
     - tap
+    depends_on:
+      - logstash
+      - kafkaserver
+      - spark
 
 
 networks:
