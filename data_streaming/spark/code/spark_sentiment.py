@@ -25,11 +25,10 @@ def get_spark_session():
         .appName('sentimentDetection') \
         .config(conf=spark_conf) \
         .getOrCreate()
-    
+
     return spark_session
 
 spark = get_spark_session()
-
 
 def get_polarity(item):
     try:
@@ -72,33 +71,57 @@ df = spark \
 get_polarity_udf = udf(get_polarity, FloatType())
 get_subjectivity_udf = udf(get_subjectivity, FloatType())
 
-df = df.selectExpr("CAST(value AS STRING) AS message") \
+df_sentiment = df.selectExpr("CAST(value AS STRING) AS message") \
     .withColumn("polarity", get_polarity_udf("message")) \
     .withColumn("subjectivity", get_subjectivity_udf("message"))
 
-#Assemble the feature into a single vector of columns
+# Assemble the feature into a single vector of columns
 assembler = VectorAssembler(inputCols=["polarity", "subjectivity"], outputCol="features")
-df = assembler.transform(df)
+df_sentiment = assembler.transform(df_sentiment)
 
-# Train a k-means model
-kmeans = KMeans().setK(4).setSeed(1)
-model = kmeans.fit(df)
+# Create an empty DataFrame to store appended messages
+appended_df = spark.createDataFrame([], df_sentiment.schema)
 
-# Make predictions
-predictions = model.transform(df)
+# Message counter
+message_counter = 0
 
-# select all columns except features column
-predictions = predictions.select([column for column in predictions.columns if column != 'features'])
+def process_batch(batch_df, batch_id):
+    global appended_df
+    global message_counter
+
+    # Append the batch DataFrame to the existing DataFrame
+    appended_df = appended_df.union(batch_df)
+
+    # Increment message counter
+    message_counter += batch_df.count()
+
+    # Check if the DataFrame size is more than 5 messages
+    if message_counter >= 6:
+        # Train a K-means model
+        kmeans = KMeans().setK(4).setSeed(1)
+        model = kmeans.fit(appended_df)
+
+        # Make predictions
+        predictions = model.transform(appended_df)
+
+        # Select all columns except features column
+        predictions = predictions.select([column for column in predictions.columns if column != 'features'])
+
+        # Display the results
+        predictions.show()
+
+        # Clear the appended DataFrame
+        appended_df = spark.createDataFrame([], df_sentiment.schema)
+
+        # Reset the message counter
+        message_counter = 0
 
 
-# Define the output sink to display the results
-query = predictions \
-    .writeStream \
+# Define the output sink to process the DataFrame in batches
+query = df_sentiment.writeStream \
     .outputMode("append") \
-    .format("console") \
+    .foreachBatch(process_batch) \
     .start()
 
 # Wait for the query to terminate
 query.awaitTermination()
-
-
