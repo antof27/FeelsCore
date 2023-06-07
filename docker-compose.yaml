@@ -115,12 +115,12 @@ services:
       
   spark_processing:
     image: tap:spark
-    container_name: spark_processing
+    container_name: spark_sentiment
     environment:
       - SPARK_ACTION=bash
       - SPARK_MASTER_URL=spark://spark-master:7077
       - SPARK_DEPLOY_MODE=client
-      - SPARK_APPLICATION_PYTHON_FILES=/opt/spark-app/spark_analysis.py
+      - SPARK_APPLICATION_PYTHON_FILES=/opt/spark-app/spark_processing.py
     volumes:
       - ./data_streaming/spark/code:/opt/spark-app
     deploy:
@@ -133,9 +133,7 @@ services:
     depends_on:
       - kafkaserver
       - spark
-    command: spark-submit --packages org.apache.spark:spark-sql-kafka-0-10_2.12:3.1.2, org.elasticsearch:elasticsearch-spark-30_2.12:8.2.0 --master local[*] /opt/spark-app/spark_analysis.py
-
-
+    command: spark-submit --packages org.apache.spark:spark-sql-kafka-0-10_2.12:3.1.2,org.elasticsearch:elasticsearch-spark-30_2.12:8.2.0 --master local[*] /opt/spark-app/spark_sentiment.py
 
 
   coreradio_script:
