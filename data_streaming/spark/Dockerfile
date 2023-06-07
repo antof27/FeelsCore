@@ -17,7 +17,7 @@ ADD code/requirements.txt /code/requirements.txt
 
 RUN pip3 install -r /code/requirements.txt
 
-RUN pip3 install pyspark==3.4.0 elasticsearch==8.2.0 kafka-python==2.0.2 spacy==3.2.0
+RUN pip3 install pyspark==3.4.0 elasticsearch==8.2.0 kafka-python==2.0.2 
 
 RUN python3 -m spacy download en_core_web_sm
 
