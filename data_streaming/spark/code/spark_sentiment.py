@@ -72,7 +72,7 @@ es_mapping = {
             "Lyrics": {"type": "text"},
             "polarity": {"type": "float"},
             "subjectivity": {"type": "float"},
-            "prediction": {"type": "keyword"},
+            "prediction": {"type": "integer"}
         }
     }
 }
@@ -122,7 +122,7 @@ def process_batch(batch_df, batch_id):
     # Increment message counter
     message_counter += batch_df.count()
     total_processed += batch_df.count()
-    threshold = 15
+    threshold = 10
 
     # Check if the DataFrame size is more than 5 messages
     if message_counter >= 5:
@@ -135,7 +135,9 @@ def process_batch(batch_df, batch_id):
 
         # Select all columns except features column
         predictions = predictions.select([column for column in predictions.columns if column != 'features'])
-        
+        #cast prediction column to integer
+        predictions = predictions.withColumn("prediction", predictions["prediction"].cast(IntegerType()))
+
         print("Messages trained: ", total_processed)
         predictions.show()
         if total_processed >= threshold:
@@ -145,7 +147,7 @@ def process_batch(batch_df, batch_id):
                 .option("es.nodes", "elasticsearch") \
                 .option("es.port", "9200") \
                 .option("es.resource", elastic_index) \
-                .option("es.mapping.id", "") \
+                .option("es.mapping.id", "Artists_songs") \
                 .mode("append") \
                 .save()
     
