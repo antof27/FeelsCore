@@ -106,7 +106,7 @@ services:
       resources:
         limits:
           cpus: '4.0'
-          memory: 4g
+          memory: 3g
     networks:
       - tap
     depends_on:

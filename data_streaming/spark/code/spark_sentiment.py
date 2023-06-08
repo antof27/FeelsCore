@@ -178,8 +178,6 @@ def process_batch(batch_df, batch_id):
             print("Messages written to Elasticsearch: ", total_processed)
 
 
-
-
         # Display the results
             
 
