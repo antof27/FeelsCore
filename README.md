@@ -19,7 +19,7 @@ The goal of this project is to develop a system capable of updating the list of 
 
 ## Project Structure
 
-<img src="./graphics/tapPipeline.jpg"/>
+<img src="./graphics/tapPipeline-2.jpg"/>
 
 ## How to execute the project
 
