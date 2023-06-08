@@ -19,7 +19,7 @@ The goal of this project is to develop a system capable of updating the list of 
 
 ## Project Structure
 
-<img src="./graphics/tapPipeline-2.jpg"/>
+<img src="./graphics/pipeline.png"/>
 
 ## How to execute the project
 
@@ -30,7 +30,7 @@ The goal of this project is to develop a system capable of updating the list of 
 </ul>
 
 ### Initial setup
-To start the initial setup the following script <code>starter.py</code> has to be executed in the main directory.
+Execute <code>python3 starter.py</code> in the main folder. This script will build the docker images for the project.
 
 ### Start project
 After the previous step is completed, the project can be started by using the code <code>docker-compose up</code>
