@@ -34,3 +34,11 @@ Execute <code>python3 starter.py</code> in the main folder. This script will bui
 
 ### Start project
 After the previous step is completed, the project can be started by using the code <code>docker-compose up</code>
+
+### Show results
+Here are the addresses to see the results of the project:
+<ul>
+<li><strong>Logstash</strong>: <a href="http://localhost:9600">http://localhost:9600</a></li>
+<li><strong>Kafka UI</strong>: <a href="http://localhost:4040">http://localhost:8080</a></li>
+<li><strong>Kibana</strong>: <a href="http://localhost:5601">http://localhost:5601</a></li>
+</ul>
