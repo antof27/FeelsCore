@@ -3,7 +3,7 @@ from pyspark.sql import SparkSession
 from pyspark.sql.functions import udf, from_json, col
 from pyspark.sql.types import StringType, FloatType, StructType, StructField, IntegerType
 from pyspark.ml.feature import VectorAssembler
-from pyspark.ml.clustering import KMeans, KMeansModel
+from pyspark.ml.clustering import KMeans
 import spacy
 from elasticsearch import Elasticsearch
 import json
