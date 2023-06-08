@@ -8,7 +8,7 @@ import socket
 
 TCP_IP = 'logstash'
 TCP_PORT = 5002
-RETRY_DELAY = 5 
+RETRY_DELAY = 10
 
 def json_create(string, id):
     data = {

@@ -108,6 +108,7 @@ elastic_host = "http://elasticsearch:9200"
 elastic_index = "lyrics_songs"
 es = Elasticsearch(hosts=elastic_host)
 
+'''
 response = es.indices.create(
     index=elastic_index,
     body=es_mapping,
@@ -117,7 +118,7 @@ response = es.indices.create(
 if 'acknowledged' in response:
     if response['acknowledged'] == True:
         print ("INDEX MAPPING SUCCESS FOR INDEX:", response['index'])
-
+'''
 
 
 def process_batch(batch_df, batch_id):
