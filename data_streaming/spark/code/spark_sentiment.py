@@ -14,6 +14,7 @@ from datetime import datetime
 # Load Spacy model
 nlp = spacy.load('en_core_web_sm')
 
+#create spark session
 def get_spark_session():
     spark_conf = SparkConf() \
         .set('spark.streaming.stopGracefullyOnShutdown', 'true') \
@@ -57,6 +58,7 @@ df = spark \
     .option('startingOffsets', 'latest') \
     .load()
 
+#define data schema
 schema = StructType([\
     StructField("Country", StringType(), True),\
     StructField("Genere", StringType(), True), \
@@ -65,7 +67,7 @@ schema = StructType([\
 ])
     
     
-
+# Define Elasticsearch mapping
 es_mapping = {
     "mappings": {
         "properties": {
@@ -80,7 +82,6 @@ es_mapping = {
         }
     }
 }
-
 
 
 value_df = df.select(from_json(col("value").cast("string"), schema).alias("value"))

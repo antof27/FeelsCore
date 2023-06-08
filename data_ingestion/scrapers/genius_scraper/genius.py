@@ -7,13 +7,15 @@ import time
 
 genius = lyricsgenius.Genius(access_token)
 
+
+#function to read the json files
 def json_reader(path):
     
     json_files = [pos_json for pos_json in os.listdir(path) if pos_json.endswith('.json')]
     #open the json files and put the content in a list
     songs = []
     
-
+    #iterate over the files
     for file in json_files:
         with open(path + file) as json_file:
             id = file.split('_')[1]
@@ -58,7 +60,7 @@ def retrieve_lyrics(item):
     artist = item[1].split('-')[0]
     song = item[1].split('-')[1]
     
-
+    #search for the artist
     artist_ = genius.search_artist(artist, max_songs=0, sort="title")
     if artist_ is None:
         print("Artist not found: " + artist)
@@ -66,6 +68,7 @@ def retrieve_lyrics(item):
     print("Artist:" + artist)
     print("Artist: " + artist_.name)
 
+    #search for the song
     song_ = genius.search_song(song, artist)
     
     if song_ is None:
@@ -80,6 +83,7 @@ def retrieve_lyrics(item):
     json_create(lyrics, item[0])
 
 k = 0
+#loop to retrieve the lyrics
 while True:
 
     listaa = json_reader('json_files/')

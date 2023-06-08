@@ -10,6 +10,7 @@ TCP_IP = 'logstash'
 TCP_PORT = 5002
 RETRY_DELAY = 10
 
+#function to create the json file
 def json_create(string, id):
     data = {
         "Genere" : string[0],
@@ -43,6 +44,7 @@ country = ""
 artists_songs = ""
 local_token = []
 c = 20
+#the scraper will run forever
 while True:
 
     if c > 1:
@@ -52,7 +54,6 @@ while True:
         
         time.sleep(60)
 
-    
     url = "https://coreradio.online/page/" + str(c)
     try:
         response = requests.get(url)
@@ -60,7 +61,6 @@ while True:
     except:
         time.sleep(40)
         response = requests.get(url)
-
 
 
     soup = BeautifulSoup(response.text, "html.parser")
@@ -90,6 +90,7 @@ while True:
     lines = information.splitlines()
     lines = [line for line in lines if line.strip() != ""]
     k = 0
+    #div filtering
     for token in lines:
 
         if token == "more" or token == "MAIN" or token == '«' or token == '»' or token == "Load more" or "Quality:" in token or len(token) <2:
