@@ -1,13 +1,15 @@
 from pyspark import SparkConf
 from pyspark.sql import SparkSession
-from pyspark.sql.functions import udf, from_json, col
-from pyspark.sql.types import StringType, FloatType, StructType, StructField, IntegerType
+from pyspark.sql.functions import udf, from_json, col, lit
+from pyspark.sql.types import StringType, FloatType, StructType, StructField, IntegerType, DateType
 from pyspark.ml.feature import VectorAssembler
 from pyspark.ml.clustering import KMeans
 import spacy
 from elasticsearch import Elasticsearch
 import json
 from textblob import TextBlob
+from datetime import datetime
+
 
 # Load Spacy model
 nlp = spacy.load('en_core_web_sm')
@@ -57,10 +59,11 @@ df = spark \
 
 schema = StructType([\
     StructField("Country", StringType(), True),\
-    StructField("Genere", StringType(), True),\
-    StructField("Artists_songs", StringType(), True),\
-    StructField("Lyrics", StringType(), True),\
+    StructField("Genere", StringType(), True), \
+    StructField("artists_songs", StringType(), True),\
+    StructField("Lyrics", StringType(), True), \
 ])
+    
     
 
 es_mapping = {
@@ -68,7 +71,8 @@ es_mapping = {
         "properties": {
             "Country": {"type": "keyword"},
             "Genere": {"type": "keyword"},
-            "Artists_songs": {"type": "keyword"},
+            "@timestamp": {"type": "date"},
+            "artists_songs": {"type": "keyword"},
             "Lyrics": {"type": "text"},
             "polarity": {"type": "float"},
             "subjectivity": {"type": "float"},
@@ -77,9 +81,11 @@ es_mapping = {
     }
 }
 
+
+
 value_df = df.select(from_json(col("value").cast("string"), schema).alias("value"))
 
-exploded_df = value_df.selectExpr("value.Country", "value.Genere", "value.Artists_songs", "value.Lyrics")
+exploded_df = value_df.selectExpr("value.Country", "value.Genere", "value.artists_songs", "value.Lyrics")
 
 
 # Apply UDFs to the DataFrame
@@ -105,7 +111,7 @@ total_processed = 0
 
 # Define the Elasticsearch index and mapping
 elastic_host = "http://elasticsearch:9200"
-elastic_index = "lyrics_songs"
+elastic_index = "artists_songs"
 es = Elasticsearch(hosts=elastic_host)
 
 '''
@@ -147,7 +153,12 @@ def process_batch(batch_df, batch_id):
         # Select all columns except features column
         predictions = predictions.select([column for column in predictions.columns if column != 'features'])
         #cast prediction column to integer
-        predictions = predictions.withColumn("prediction", predictions["prediction"].cast(IntegerType()))
+
+        
+
+        predictions = predictions \
+            .withColumn("prediction", predictions["prediction"].cast(IntegerType())) \
+            .withColumn("@timestamp", lit(datetime.now().isoformat())) \
 
         print("Messages trained: ", total_processed)
         predictions.show()
@@ -158,7 +169,7 @@ def process_batch(batch_df, batch_id):
                 .option("es.nodes", "elasticsearch") \
                 .option("es.port", "9200") \
                 .option("es.resource", elastic_index) \
-                .option("es.mapping.id", "Artists_songs") \
+                .option("es.mapping.id", "artists_songs") \
                 .mode("append") \
                 .save()
     

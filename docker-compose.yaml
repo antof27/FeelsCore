@@ -159,7 +159,6 @@ services:
     environment:
       - node.name=elasticsearch
       - xpack.security.enabled=false
-      - xpack.security.enrollment.enabled=true
       - discovery.type=single-node
       - bootstrap.memory_lock=true
       - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
@@ -172,25 +171,33 @@ services:
     - tap
     depends_on:
       - logstash
-      - kafkaserver
+      - kafkaserver 
       - spark
-    #command: bin/elasticsearch-create-enrollment-token --scope kibana
+
 
 
   kibana:
-    image: docker.elastic.co/kibana/kibana:8.2.0
     container_name: kibana
+    image: docker.elastic.co/kibana/kibana:8.2.0
+    build: 
+      context: ./data_visualization/kibana
+      dockerfile: Dockerfile
     hostname: kibana
+
+    volumes:
+      - ./data_visualization/kibana/kibana.yml:/usr/share/kibana/config/kibana.yml
+
     depends_on:
       - elasticsearch
     ports:
       - 5601:5601
-    volumes:
-      - ./data_visualization/kibana/kibana.yml:/usr/share/kibana/config/kibana.yml
     environment:
-      - SERVERNAME=kibana
-      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+      - xpack.security.enabled=false
+      - KBN_PATH_CONF=/usr/share/kibana/config
 
+      
+    networks:
+      - tap
 
 networks:
   tap:

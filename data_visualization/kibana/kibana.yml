@@ -1,6 +1,5 @@
 server.name: "kibana"
 server.host: "0.0.0.0"
-server.shutdownTimeout: "5s"
 elasticsearch.hosts: [ "http://elasticsearch:9200" ]
 vis_type_vega.enableExternalUrls: true
 xpack.monitoring.ui.container.elasticsearch.enabled: true

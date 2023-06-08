@@ -81,7 +81,7 @@ def retrieve_lyrics(item):
     print("Item : ",item)
     parsed_data = json.loads(item)
 
-    artists_songs = parsed_data["Artists_songs"]
+    artists_songs = parsed_data["artists_songs"]
     try:
         artist = artists_songs.split('-')[0]
 
@@ -204,7 +204,7 @@ get_lyrics_udf = udf(get_lyrics)
 
 # Extract the "Artists_songs" value and apply the get_lyrics function
 df_with_lyrics = df.selectExpr('CAST(value AS STRING) as message') \
-    .withColumn('Artists_songs', get_lyrics_udf('message'))
+    .withColumn('artists_songs', get_lyrics_udf('message'))
 
 # Write the transformed data to the console
 query = df_with_lyrics \

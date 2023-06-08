@@ -14,7 +14,7 @@ def json_create(string, id):
     data = {
         "Genere" : string[0],
         "Country" : string[1],
-        "Artists_songs" : string[2],
+        "artists_songs" : string[2],
         #"Timestamp" : timestamp
     }
     
