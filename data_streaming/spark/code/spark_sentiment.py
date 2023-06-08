@@ -173,12 +173,8 @@ def process_batch(batch_df, batch_id):
                 .mode("append") \
                 .save()
     
-
             
             print("Messages written to Elasticsearch: ", total_processed)
-
-
-        # Display the results
             
 
         # Clear the appended DataFrame
