@@ -16,11 +16,11 @@ client_id = "bYn9RiVeg0XDsQxen_OhrpCqRIT3WFpUOP_cfxl41NPuybOtDzhzFDmasjiLHvgd"
 client_secret = "_QzFD_y8v4ComT7DyDzEV7abtB7qTO2_k3GH3xk4G9cSb6ZpGVss5OfpM3rMwCxfteMOWj4lupVuG8b9jloTMQ"
 access_token = "5eEqYSpR_WlDSv1johECV8bhePcZ-WxWxGacMWxXMzYgFhHNQWBxuDct1Fan9bYa"
 
-#-------------------------- GENIUS SCRIPTS --------------------------#
 genius = lyricsgenius.Genius(access_token, timeout=15, sleep_time=0.2, retries=5, remove_section_headers=True, skip_non_songs=True)
 retry_list = []
 last_retry_time = time.time()
 
+#function to clean the lyrics from junk
 def clean_lyrics(lyrics):
     # Remove tags
     lyrics = re.sub(r'\[.*?\]', '', lyrics)
@@ -40,7 +40,7 @@ def clean_lyrics(lyrics):
     return lyrics
 
 
-
+#create json object from the lyrics
 def json_create(item, string):
     parsed_data = json.loads(item)
     sem = False
@@ -74,8 +74,7 @@ def json_create(item, string):
     #return item
         
 
-
-
+#retrieve lyrics from genius
 def retrieve_lyrics(item):
     sem = True
     print("Item : ",item)
@@ -123,6 +122,7 @@ def retrieve_lyrics(item):
     return lyrics
 
 
+#retry the songs that were not found
 def retry_songs(retry_list):
     if len(retry_list) == 0:
            return
@@ -151,7 +151,7 @@ def retry_songs(retry_list):
 
     
             
-
+#function to get the lyrics
 def get_lyrics(item):
     global last_retry_time 
     lyrics = retrieve_lyrics(item)
