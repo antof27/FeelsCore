@@ -108,7 +108,6 @@ message_counter = 0
 total_processed = 0
 
 
-
 # Define the Elasticsearch index and mapping
 elastic_host = "http://elasticsearch:9200"
 elastic_index = "artists_songs"
@@ -126,44 +125,52 @@ if 'acknowledged' in response:
         print ("INDEX MAPPING SUCCESS FOR INDEX:", response['index'])
 '''
 
+sem = False
+kmeans = KMeans().setK(3).setSeed(42)
+model = None
 
 def process_batch(batch_df, batch_id):
     global appended_df
     global message_counter
     global threshold
-    global total_processed
-
+    global sem
+    global model 
     # Append the batch DataFrame to the existing DataFrame
-    appended_df = appended_df.union(batch_df)
+    if sem == False:
+        appended_df = appended_df.union(batch_df)
 
     # Increment message counter
     message_counter += batch_df.count()
-    total_processed += batch_df.count()
-    threshold = 10
+    
+    threshold = 30
 
     # Check if the DataFrame size is more than 5 messages
-    if message_counter >= 5:
+    if message_counter > threshold:
         # Train a K-means model
-        kmeans = KMeans().setK(4).setSeed(42)
-        model = kmeans.fit(appended_df)
-
-        # Make predictions
-        predictions = model.transform(appended_df)
-
-        # Select all columns except features column
-        predictions = predictions.select([column for column in predictions.columns if column != 'features'])
-        #cast prediction column to integer
-
         
-
-        predictions = predictions \
-            .withColumn("prediction", predictions["prediction"].cast(IntegerType())) \
-            .withColumn("@timestamp", lit(datetime.now().isoformat())) \
-
-        print("Messages trained: ", total_processed)
-        predictions.show()
-        if total_processed >= threshold:
+        if sem == False:
+            print("Training model...")
+            model = kmeans.fit(appended_df)
+            sem = True
             
+
+        else:
+            # Make predictions
+            predictions = model.transform(batch_df)
+
+            # Select all columns except features column
+            predictions = predictions.select([column for column in predictions.columns if column != 'features'])
+            #cast prediction column to integer
+
+
+            predictions = predictions \
+                .withColumn("prediction", predictions["prediction"].cast(IntegerType())) \
+                .withColumn("@timestamp", lit(datetime.now().isoformat())) \
+
+            
+            predictions.show()
+           
+                
             # Write the predictions to Elasticsearch
             predictions.write.format("org.elasticsearch.spark.sql") \
                 .option("es.nodes", "elasticsearch") \
@@ -172,18 +179,9 @@ def process_batch(batch_df, batch_id):
                 .option("es.mapping.id", "artists_songs") \
                 .mode("append") \
                 .save()
-    
-            
-            print("Messages written to Elasticsearch: ", total_processed)
-            
-
-        # Clear the appended DataFrame
-        appended_df = spark.createDataFrame([], df_sentiment.schema)
-
-        # Reset the message counter
-        message_counter = 0
-
         
+                
+            print("Messages written to Elasticsearch: ", total_processed)
             
 
 

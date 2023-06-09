@@ -47,10 +47,10 @@ while True:
 
     if c > 1:
         c = c -1
-        time.sleep(1)
+        time.sleep(4)
     else:
         
-        time.sleep(60)
+        time.sleep(3600)
 
     
     url = "https://coreradio.online/page/" + str(c)
@@ -58,7 +58,7 @@ while True:
         response = requests.get(url)
     #if the response isn't correctly done, retry after 40 seconds
     except:
-        time.sleep(40)
+        time.sleep(60)
         response = requests.get(url)
 
 
