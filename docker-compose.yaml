@@ -1,0 +1,212 @@
+version: '3.7'
+
+services:
+  #--- Zookeeper ---
+  zookeeper:
+    image: tap:kafka
+    container_name: kafkaZK
+    environment:
+      - KAFKA_ACTION=start-zk
+    networks: 
+      tap:
+        ipv4_address: 10.0.100.22
+
+  #--- Kafka ---
+  kafkaserver:
+    image: tap:kafka
+    container_name: kafkaServer
+    environment:
+      - KAFKA_ACTION=start-kafka
+      #- KAFKA_HEAP_OPTS=-Xmx256M
+    ports:
+      - 9092:9092
+    networks: 
+      tap:
+        ipv4_address: 10.0.100.23
+    depends_on:
+      - zookeeper
+    
+  
+  #--- Kafka Web UI ---
+  kafka-ui:
+    image: provectuslabs/kafka-ui:v0.7.0
+    container_name: kafkaWebUI
+    environment:
+      - KAFKA_CLUSTERS_0_NAME=local
+      - KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS=kafkaServer:9092
+    ports: 
+      - 8080:8080
+    networks: 
+      - tap
+    depends_on:
+      - kafkaserver
+
+  #--- Kafka topic musicFlux---
+  kafkaTopic:
+    image: tap:kafka
+    container_name: kafkaTopic
+    environment:
+        - KAFKA_ACTION=create-topic
+        - KAFKA_PARTITION=2
+        - KAFKA_TOPIC=musicFlux
+    networks: 
+        tap:
+    depends_on:
+        - zookeeper
+        - kafkaserver
+  
+  #--- Kafka topic lyricsFlux---
+  kafkaTopic2:
+    image: tap:kafka
+    container_name: kafkaTopic2
+    environment:
+        - KAFKA_ACTION=create-topic
+        - KAFKA_PARTITION=2
+        - KAFKA_TOPIC=lyricsFlux
+    networks: 
+        tap:
+    depends_on:
+        - zookeeper
+        - kafkaserver
+        - spark
+
+  #--- Logstash ---
+  logstash:
+    image: tap:logstash   
+    networks: 
+      - tap
+    environment:
+      - XPACK_MONITORING_ENABLED=false
+      - KAFKA_OUTPUT_BOOTSTRAP_SERVERS=kafkaserver:9092
+      - KAFKA_OUTPUT_TOPIC=musicFlux
+    volumes:
+      - ./data_ingestion/logstash/pipeline/logstash.conf:/usr/share/logstash/pipeline/logstash.conf
+
+    depends_on:
+          kafkaTopic:
+              condition: service_completed_successfully
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "200k"
+        max-file: "10"
+    ports:
+      - "5002:5002"
+    
+  #--- Spark ---
+  spark:
+    image: tap:spark
+    container_name: spark
+    environment:
+      - SPARK_ACTION=bash
+      - SPARK_MASTER_URL=spark://spark-master:7077
+      - SPARK_DEPLOY_MODE=client
+      - SPARK_APPLICATION_PYTHON_FILES=/opt/spark-app/spark_code.py
+    volumes:
+      - ./data_streaming/spark/code:/opt/spark-app
+    deploy:
+      resources:
+        limits:
+          cpus: '4.0'
+          memory: 3g
+    networks:
+      - tap
+    depends_on:
+      - kafkaserver
+    command: spark-submit --packages org.apache.spark:spark-sql-kafka-0-10_2.12:3.1.2,org.elasticsearch:elasticsearch-spark-30_2.12:8.2.0 --master local[*] /opt/spark-app/spark_code.py
+
+  #--- Spark processing ---  
+  spark_processing:
+    image: tap:spark
+    container_name: spark_processing
+    environment:
+      - SPARK_ACTION=bash
+      - SPARK_MASTER_URL=spark://spark-master:7077
+      - SPARK_DEPLOY_MODE=client
+      - SPARK_APPLICATION_PYTHON_FILES=/opt/spark-app/spark_sentiment.py
+    volumes:
+      - ./data_streaming/spark/code:/opt/spark-app
+    deploy:
+      resources:
+        limits:
+          cpus: '4.0'
+          memory: 4g
+    networks:
+      - tap
+    depends_on:
+      - kafkaserver
+      - spark
+    command: spark-submit --packages org.apache.spark:spark-sql-kafka-0-10_2.12:3.1.2,org.elasticsearch:elasticsearch-spark-30_2.12:8.2.0 --master local[*] /opt/spark-app/spark_sentiment.py
+
+  #--- CoreRadio Scraper ---
+  coreradio_script:
+    build: 
+      context: ./data_ingestion/scrapers/coreradio_scraper
+      dockerfile: Dockerfile
+    networks:
+      - tap
+    volumes:
+      - ./data_ingestion/scrapers/coreradio_scraper:/app
+    depends_on:
+      - logstash
+    command: python3 /app/coreradio_scraper.py --output tcp://logstash:5002
+
+  #--- ElasticSearch ---
+  elasticsearch:
+    container_name: elasticsearch
+    hostname: elasticsearch
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.2.0
+    ports:
+      - "9200:9200"
+      - "9300:9300"      
+    environment:
+      - node.name=elasticsearch
+      - xpack.security.enabled=false
+      - discovery.type=single-node
+      - bootstrap.memory_lock=true
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+      - cluster.routing.allocation.disk.threshold_enabled=false
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    networks: 
+    - tap
+    depends_on:
+      - logstash
+      - kafkaserver 
+      - spark
+
+
+  #--- Kibana ---
+  kibana:
+    container_name: kibana
+    image: docker.elastic.co/kibana/kibana:8.2.0
+    build: 
+      context: ./data_visualization/kibana
+      dockerfile: Dockerfile
+    hostname: kibana
+
+    volumes:
+      - ./data_visualization/kibana/kibana.yml:/usr/share/kibana/config/kibana.yml
+
+    depends_on:
+      - elasticsearch
+    ports:
+      - 5601:5601
+    environment:
+      - xpack.security.enabled=false
+      - KBN_PATH_CONF=/usr/share/kibana/config
+
+      
+    networks:
+      - tap
+
+#--- Networks ---
+networks:
+  tap:
+    name: tap
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 10.0.100.1/24
