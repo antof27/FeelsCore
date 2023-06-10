@@ -8,7 +8,7 @@ import socket
 
 TCP_IP = 'logstash'
 TCP_PORT = 5002
-RETRY_DELAY = 10
+RETRY_DELAY = 60
 
 def json_create(string, id):
     data = {
@@ -21,7 +21,7 @@ def json_create(string, id):
     connected = False
     while not connected:
         try:
-            #json must be sent to the network
+            # Create a TCP/IP socket and connect to Logstash
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             sock.connect((TCP_IP, TCP_PORT))
             sock.sendall(json.dumps(data).encode('utf-8'))
@@ -56,7 +56,7 @@ while True:
     url = "https://coreradio.online/page/" + str(c)
     try:
         response = requests.get(url)
-    #if the response isn't correctly done, retry after 40 seconds
+    #if the response isn't correctly done, retry after 60 seconds
     except:
         time.sleep(60)
         response = requests.get(url)
@@ -119,7 +119,7 @@ while True:
                 l_token.append(l_temp)
 
             k = k+1
-    
+    # for every token in the list, check if it is already in the local_token list
     for i, j in zip(l_token, l_id):
         
         if j in local_token:    
