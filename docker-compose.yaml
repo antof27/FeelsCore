@@ -1,7 +1,7 @@
 version: '3.7'
 
 services:
-
+  #--- Zookeeper ---
   zookeeper:
     image: tap:kafka
     container_name: kafkaZK
@@ -11,6 +11,7 @@ services:
       tap:
         ipv4_address: 10.0.100.22
 
+  #--- Kafka ---
   kafkaserver:
     image: tap:kafka
     container_name: kafkaServer
@@ -26,7 +27,7 @@ services:
       - zookeeper
     
   
-
+  #--- Kafka Web UI ---
   kafka-ui:
     image: provectuslabs/kafka-ui:v0.7.0
     container_name: kafkaWebUI
@@ -40,7 +41,7 @@ services:
     depends_on:
       - kafkaserver
 
-
+  #--- Kafka topic musicFlux---
   kafkaTopic:
     image: tap:kafka
     container_name: kafkaTopic
@@ -54,6 +55,7 @@ services:
         - zookeeper
         - kafkaserver
   
+  #--- Kafka topic lyricsFlux---
   kafkaTopic2:
     image: tap:kafka
     container_name: kafkaTopic2
@@ -68,7 +70,7 @@ services:
         - kafkaserver
         - spark
 
-
+  #--- Logstash ---
   logstash:
     image: tap:logstash   
     networks: 
@@ -91,7 +93,7 @@ services:
     ports:
       - "5002:5002"
     
-
+  #--- Spark ---
   spark:
     image: tap:spark
     container_name: spark
@@ -112,7 +114,8 @@ services:
     depends_on:
       - kafkaserver
     command: spark-submit --packages org.apache.spark:spark-sql-kafka-0-10_2.12:3.1.2,org.elasticsearch:elasticsearch-spark-30_2.12:8.2.0 --master local[*] /opt/spark-app/spark_code.py
-      
+
+  #--- Spark processing ---  
   spark_processing:
     image: tap:spark
     container_name: spark_processing
@@ -135,7 +138,7 @@ services:
       - spark
     command: spark-submit --packages org.apache.spark:spark-sql-kafka-0-10_2.12:3.1.2,org.elasticsearch:elasticsearch-spark-30_2.12:8.2.0 --master local[*] /opt/spark-app/spark_sentiment.py
 
-
+  #--- CoreRadio Scraper ---
   coreradio_script:
     build: 
       context: ./data_ingestion/scrapers/coreradio_scraper
@@ -148,7 +151,7 @@ services:
       - logstash
     command: python3 /app/coreradio_scraper.py --output tcp://logstash:5002
 
-
+  #--- ElasticSearch ---
   elasticsearch:
     container_name: elasticsearch
     hostname: elasticsearch
@@ -175,7 +178,7 @@ services:
       - spark
 
 
-
+  #--- Kibana ---
   kibana:
     container_name: kibana
     image: docker.elastic.co/kibana/kibana:8.2.0
@@ -199,6 +202,7 @@ services:
     networks:
       - tap
 
+#--- Networks ---
 networks:
   tap:
     name: tap
