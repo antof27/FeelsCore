@@ -33,6 +33,7 @@ def get_spark_session():
 
 spark = get_spark_session()
 
+#Define UDFs
 def get_polarity(lyrics):
     blob = TextBlob(lyrics)
     polarity = blob.sentiment.polarity
@@ -65,7 +66,7 @@ schema = StructType([\
 ])
     
     
-
+# Define Elasticsearch mapping
 es_mapping = {
     "mappings": {
         "properties": {
@@ -141,13 +142,12 @@ def process_batch(batch_df, batch_id):
 
     # Increment message counter
     message_counter += batch_df.count()
-    
+    # Define the threshold of messages after which the model is trained, higher value will give better results but will take longer
     threshold = 30
 
     # Check if the DataFrame size is more than 5 messages
     if message_counter > threshold:
         # Train a K-means model
-        
         if sem == False:
             print("Training model...")
             model = kmeans.fit(appended_df)
@@ -160,7 +160,6 @@ def process_batch(batch_df, batch_id):
 
             # Select all columns except features column
             predictions = predictions.select([column for column in predictions.columns if column != 'features'])
-            #cast prediction column to integer
 
 
             predictions = predictions \
