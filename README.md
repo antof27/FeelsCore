@@ -1,4 +1,4 @@
-# FeelsCore
+<img src="./Presentation/images/logo.png>
 Developed by **Antonio Finocchiaro** and **Riccardo Cuccia**, this project is part of the **Technologies For Advanced Programming** course at the University of Catania.
 
 ## Project Goal
