@@ -12,9 +12,9 @@ import re
 
 
 #-------------------------- GENIUS CREDENTIALS --------------------------#
-client_id = "bYn9RiVeg0XDsQxen_OhrpCqRIT3WFpUOP_cfxl41NPuybOtDzhzFDmasjiLHvgd"
-client_secret = "_QzFD_y8v4ComT7DyDzEV7abtB7qTO2_k3GH3xk4G9cSb6ZpGVss5OfpM3rMwCxfteMOWj4lupVuG8b9jloTMQ"
-access_token = "5eEqYSpR_WlDSv1johECV8bhePcZ-WxWxGacMWxXMzYgFhHNQWBxuDct1Fan9bYa"
+client_id = ""
+client_secret = ""
+access_token = ""
 
 #-------------------------- GENIUS SCRIPTS --------------------------#
 genius = lyricsgenius.Genius(access_token, timeout=15, sleep_time=0.2, retries=5, remove_section_headers=True, skip_non_songs=True)
